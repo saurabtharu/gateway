@@ -591,7 +591,9 @@ type ResponseOverrideRule struct {
 	// Match configuration.
 	Match CustomResponseMatch `json:"match"`
 	// Response configuration.
-	Response CustomResponse `json:"response"`
+	Response *CustomResponse `json:"response,omitempty"`
+	// Redirect configuration
+	Redirect *Redirect `json:"redirect,omitempty"`
 }
 
 // CustomResponseMatch defines the configuration for matching a user response to return a custom one.
@@ -884,11 +886,24 @@ type TrafficFeatures struct {
 	// Compression settings for HTTP Response
 	Compression []*Compression `json:"compression,omitempty" yaml:"compression,omitempty"`
 	// HTTPUpgrade defines the schema for upgrading the HTTP protocol.
-	HTTPUpgrade []string `json:"httpUpgrade,omitempty" yaml:"httpUpgrade,omitempty"`
+	HTTPUpgrade []HTTPUpgradeConfig `json:"httpUpgrade,omitempty" yaml:"httpUpgrade,omitempty"`
 	// Telemetry defines the schema for telemetry configuration.
 	Telemetry *egv1a1.BackendTelemetry `json:"telemetry,omitempty" yaml:"telemetry,omitempty"`
 	// RequestBuffer defines the schema for enabling buffered requests
 	RequestBuffer *RequestBuffer `json:"requestBuffer,omitempty" yaml:"requestBuffer,omitempty"`
+}
+
+// +k8s:deepcopy-gen=true
+type HTTPUpgradeConfig struct {
+	Type    string         `json:"type" yaml:"type"`
+	Connect *ConnectConfig `json:"connect,omitempty" yaml:"connect,omitempty"`
+}
+
+// ConnectConfig indicates whether the CONNECT should be terminated.
+//
+// +k8s:deepcopy-gen=true
+type ConnectConfig struct {
+	Terminate bool `json:"terminate" yaml:"terminate"`
 }
 
 func (b *TrafficFeatures) Validate() error {
@@ -1112,6 +1127,11 @@ type OIDC struct {
 
 	// CookieDomain sets the domain of the cookies set by the oauth filter.
 	CookieDomain *string `json:"cookieDomain,omitempty"`
+
+	// CookieConfigs allows overriding the SameSite attribute for OIDC cookies.
+	// If a specific cookie is not configured, it will use the default xds value of disabled.
+	// +optional
+	CookieConfig *egv1a1.OIDCCookieConfig `json:"cookieConfig,omitempty"`
 
 	// Skips OIDC authentication when the request contains any header that will be extracted by the JWT
 	// filter, normally "Authorization: Bearer ...". This is typically used for non-browser clients that
@@ -1741,15 +1761,15 @@ func (r URLRewrite) Validate() error {
 // +k8s:deepcopy-gen=true
 type Redirect struct {
 	// Scheme configures the replacement of the request's scheme.
-	Scheme *string `json:"scheme" yaml:"scheme"`
+	Scheme *string `json:"scheme,omitempty" yaml:"scheme,omitempty"`
 	// Hostname configures the replacement of the request's hostname.
-	Hostname *string `json:"hostname" yaml:"hostname"`
+	Hostname *string `json:"hostname,omitempty" yaml:"hostname,omitempty"`
 	// Path contains config for rewriting the path of the request.
-	Path *HTTPPathModifier `json:"path" yaml:"path"`
+	Path *HTTPPathModifier `json:"path,omitempty" yaml:"path,omitempty"`
 	// Port configures the replacement of the request's port.
-	Port *uint32 `json:"port" yaml:"port"`
+	Port *uint32 `json:"port,omitempty" yaml:"port,omitempty"`
 	// Status code configures the redirection response's status code.
-	StatusCode *int32 `json:"statusCode" yaml:"statusCode"`
+	StatusCode *int32 `json:"statusCode,omitempty" yaml:"statusCode,omitempty"`
 }
 
 // Validate the fields within the Redirect structure
